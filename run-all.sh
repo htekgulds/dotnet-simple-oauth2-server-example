@@ -22,24 +22,24 @@ run_service() {
 pids=()
 
 # Start OAuth2 Server
-run_service "OAuth2 Server" "OAuth2.Server" "7000"
+run_service "OAuth2 Server" "OAuth2.Server" "5001"
 pids+=($!)
 
 # Start User Service
-run_service "User Service" "UserService.Mock" "7002"
+run_service "User Service" "UserService.Mock" "5114"
 pids+=($!)
 
 # Start SMS Service
-run_service "SMS Service" "SmsService.Mock" "7003"
+run_service "SMS Service" "SmsService.Mock" "5289"
 pids+=($!)
 
 # Start Demo App
-run_service "Demo App" "DemoApp" "7001"
+run_service "Demo App" "DemoApp" "5000"
 pids+=($!)
 
 echo ""
 echo "All services started!"
-echo "Access the demo app at: https://localhost:7001"
+echo "Access the demo app at: http://localhost:5000"
 echo ""
 echo "Press Ctrl+C to stop all services..."
 

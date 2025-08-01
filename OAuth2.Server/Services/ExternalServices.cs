@@ -27,12 +27,10 @@ public interface ITwoFactorService
 public class UserService : IUserService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
 
-    public UserService(HttpClient httpClient, string baseUrl)
+    public UserService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _baseUrl = baseUrl;
     }
 
     public async Task<User?> ValidateUserAsync(string username, string password)
@@ -40,7 +38,7 @@ public class UserService : IUserService
         try
         {
             var request = new { Username = username, Password = password };
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/users/validate", request);
+            var response = await _httpClient.PostAsJsonAsync("/api/users/validate", request);
             
             if (response.IsSuccessStatusCode)
             {
@@ -61,7 +59,7 @@ public class UserService : IUserService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"{_baseUrl}/api/users/{userId}");
+            var response = await _httpClient.GetAsync($"/api/users/{userId}");
             
             if (response.IsSuccessStatusCode)
             {
@@ -82,12 +80,10 @@ public class UserService : IUserService
 public class SmsService : ISmsService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _baseUrl;
 
-    public SmsService(HttpClient httpClient, string baseUrl)
+    public SmsService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _baseUrl = baseUrl;
     }
 
     public async Task<bool> SendSmsAsync(string phoneNumber, string message)
@@ -95,7 +91,7 @@ public class SmsService : ISmsService
         try
         {
             var request = new { PhoneNumber = phoneNumber, Message = message };
-            var response = await _httpClient.PostAsJsonAsync($"{_baseUrl}/api/sms/send", request);
+            var response = await _httpClient.PostAsJsonAsync("/api/sms/send", request);
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)

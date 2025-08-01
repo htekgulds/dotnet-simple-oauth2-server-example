@@ -9,7 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddControllersWithViews();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Configure settings
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()!;
@@ -29,13 +30,13 @@ builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
 builder.Services.AddHttpClient<IUserService, UserService>((serviceProvider, client) =>
 {
     var services = serviceProvider.GetRequiredService<ExternalServices>();
-    return new UserService(client, services.UserServiceUrl);
+    client.BaseAddress = new Uri(services.UserServiceUrl);
 });
 
 builder.Services.AddHttpClient<ISmsService, SmsService>((serviceProvider, client) =>
 {
     var services = serviceProvider.GetRequiredService<ExternalServices>();
-    return new SmsService(client, services.SmsServiceUrl);
+    client.BaseAddress = new Uri(services.SmsServiceUrl);
 });
 
 // Configure JWT authentication
@@ -71,7 +72,8 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
     app.UseDeveloperExceptionPage();
 }
 
