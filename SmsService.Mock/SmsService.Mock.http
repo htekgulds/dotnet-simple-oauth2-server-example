@@ -1,0 +1,6 @@
+@SmsService.Mock_HostAddress = http://localhost:5289
+
+GET {{SmsService.Mock_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

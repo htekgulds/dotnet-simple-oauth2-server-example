@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth2 Login</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #e74c3c;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .success {
+            color: #27ae60;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .two-factor-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function LoginForm() {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [twoFactorCode, setTwoFactorCode] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState('');
+            const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+            const [twoFactorToken, setTwoFactorToken] = useState('');
+
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client_id');
+            const redirectUri = urlParams.get('redirect_uri');
+            const scope = urlParams.get('scope');
+            const state = urlParams.get('state');
+            const codeChallenge = urlParams.get('code_challenge');
+            const codeChallengeMethod = urlParams.get('code_challenge_method');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+                setSuccess('');
+
+                try {
+                    const loginData = {
+                        username,
+                        password,
+                        twoFactorCode: requiresTwoFactor ? twoFactorCode : undefined
+                    };
+
+                    const queryParams = new URLSearchParams({
+                        client_id: clientId,
+                        redirect_uri: redirectUri,
+                        scope: scope
+                    });
+
+                    if (state) queryParams.append('state', state);
+                    if (codeChallenge) queryParams.append('code_challenge', codeChallenge);
+                    if (codeChallengeMethod) queryParams.append('code_challenge_method', codeChallengeMethod);
+                    if (requiresTwoFactor && twoFactorToken) queryParams.append('two_factor_token', twoFactorToken);
+
+                    const response = await fetch(`/oauth2/login?${queryParams}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(loginData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setSuccess('Login successful! Redirecting...');
+                        // Redirect with authorization code
+                        const redirectUrl = new URL(redirectUri);
+                        redirectUrl.searchParams.append('code', result.authorizationCode);
+                        if (state) redirectUrl.searchParams.append('state', state);
+                        
+                        setTimeout(() => {
+                            window.location.href = redirectUrl.toString();
+                        }, 1000);
+                    } else if (result.requiresTwoFactor) {
+                        setRequiresTwoFactor(true);
+                        setTwoFactorToken(result.twoFactorToken);
+                        setSuccess('2FA code sent to your phone. Please enter it below.');
+                    } else {
+                        setError(result.errorMessage || 'Login failed');
+                    }
+                } catch (err) {
+                    setError('Network error. Please try again.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="login-container">
+                    <h2>OAuth2 Login</h2>
+                    <form onSubmit={handleSubmit}>
+                        {!requiresTwoFactor ? (
+                            <>
+                                <div className="form-group">
+                                    <label htmlFor="username">Username</label>
+                                    <input
+                                        type="text"
+                                        id="username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="password">Password</label>
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="two-factor-section">
+                                <div className="form-group">
+                                    <label htmlFor="twoFactorCode">2FA Code</label>
+                                    <input
+                                        type="text"
+                                        id="twoFactorCode"
+                                        value={twoFactorCode}
+                                        onChange={(e) => setTwoFactorCode(e.target.value)}
+                                        placeholder="Enter 6-digit code"
+                                        maxLength="6"
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading}>
+                            {loading ? 'Processing...' : (requiresTwoFactor ? 'Verify Code' : 'Login')}
+                        </button>
+
+                        {error && <div className="error">{error}</div>}
+                        {success && <div className="success">{success}</div>}
+                    </form>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<LoginForm />, document.getElementById('root'));
+    </script>
+</body>
+</html>
