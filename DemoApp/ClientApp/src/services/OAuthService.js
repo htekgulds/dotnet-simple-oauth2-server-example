@@ -4,7 +4,7 @@ class OAuthService {
         this.clientSecret = 'demo-web-app-secret';
         this.redirectUri = window.location.origin + '/callback';
         this.scope = 'openid profile email api';
-        this.authServerUrl = 'https://localhost:7000';
+        this.authServerUrl = 'http://localhost:7000';
         this.apiUrl = window.location.origin;
     }
 
